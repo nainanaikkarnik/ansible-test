@@ -5,13 +5,137 @@
 - name: Create Zookeeper Group
   group:
     name: "{{zookeeper.group}}"
+    state: present
 
 - name: Create Zookeeper User
   user:
     name: "{{zookeeper.user}}"
     comment: "Zookeeper User"
-    system: yes
     group: "{{zookeeper.group}}"
+
+- include_vars: file={{ playbook_dir }}/conf/kafka_packages.yml
+
+- name: create install directories
+  file:
+    path: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    state: directory
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "zookeeper"
+
+- name: Extract zookeeper package
+  unarchive:
+    src: "{{ downloads_dir }}/{{ item.name }}-{{ item.version }}.tar.gz"
+    dest: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+    extra_opts: [--strip=1]
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "zookeeper"
+
+- name: symlink install directory
+  file:
+    src: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    path: "{{ zookeeper.link_dir }}"
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+    state: link
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "zookeeper"
+
+- name: create deploy directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  with_items:
+   - "{{ zookeeper.datalog_dir }}"
+   - "{{ zookeeper.conf_dir }}"
+   notify:
+     - Restart zookeeper
+
+- name: Set Zookeeper dataDir ownership
+  file:
+    path: "{{zookeeper.data_dir}}"
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+    state: directory
+    notify:
+      - Restart zookeeper
+
+- name: create zoo.cfg file
+  template:
+    src: "zoo.cfg.j2"
+    dest: "{{ zookeeper.conf_dir }}/zoo.cfg"
+    mode: 0644
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  notify:
+    - Restart zookeeper
+
+- name: create log4j.properties file
+  template:
+    src: "zookeeper_log4j.properties.j2"
+    dest: "{{ zookeeper.conf_dir }}/zookeeper_log4j.properties"
+    mode: 0644
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  notify:
+    - Restart zookeeper
+
+- name: Create zookeeper log directory
+  file:
+    name: {{ zookeeper.log_dir }}
+    state: directory
+    owner: "{{ zookeeper_user }}"
+    group: "{{ zookeeper_group }}"
+    recurse: yes
+  notify:
+     - Restart zookeeper
+
+- name: create java env file
+  template:
+    src: "java.env.j2"
+    dest: "{{ zookeeper.conf_dir }}/java.env"
+    mode: 0644
+    owner: "{{zookeeper.user}}"
+    group: "{{zookeeper.group}}"
+  notify:
+    - Restart zookeeper
+
+- name: Configure zookeeper id
+  template:
+    src: "myid.j2"
+    dest:  "{{zookeeper.data_dir}}/myid"
+    owner: "{{ zookeeper.user }}"
+    group: "{{ zookeeper.group }}"
+    mode: 0555
+  notify:
+     - Restart zookeeper
+
+- name: Create systemd startup script
+  template:
+    src: zookeeper.service
+    dest: /etc/systemd/system/zookeeper.service
+    owner: root
+    group: root
+    mode: 644
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "zookeeper"
+  notify:
+   - reload systemd
+   - Restart zookeeper
+
+- name: Ensure Zookeeper is started
+  service:
+    name: zookeeper
+    state: started
+
+
+
 
 
 

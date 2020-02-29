@@ -1,0 +1,11 @@
+---
+# defaults file for java_openjdk
+
+java:
+  user: root
+  group: root
+
+  install_dir: "/opt/jdk-{{ java_version }}"
+  profile_link: "/etc/profile.d/java8.sh"
+
+

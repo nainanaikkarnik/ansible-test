@@ -1,0 +1,6 @@
+- name: Restart zookeeper
+  service: name=zookeeper state=restarted
+  with_items: "{{ zookeeper_servers.hosts }}"
+
+- name: reload systemd
+  command: systemctl daemon-reload

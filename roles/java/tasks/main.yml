@@ -1,0 +1,48 @@
+---
+# tasks file for java_oraclejdk
+
+- name: install unzip
+  package:
+    name: unzip
+    state: present
+    update_cache: yes
+
+- name: install wget
+  yum: name=wget state=present
+
+- name: Create download directory
+  file:
+    path: "{{ java_download_dir }}"
+    state: directory
+
+- name: Copy java tar file
+  copy:
+    src: "{{downloads_dir}}/jdk-{{ java_version }}-linux-x64.tar.gz"
+    dest: "{{ java_downloads_dir }}/jdk-{{ java_version }}-linux-x64.tar.gz"
+
+- name: Create JDK directory
+  file:
+    path: "{{ java.install_dir }}"
+    state: directory
+    when: jdk_download.changed
+
+- name: Unpack JDK
+  command: tar -xvf {{ java_downloads_dir }}/jdk-{{ java_version }}-linux-x64.tar.gz -C {{ java.install_dir }} --strip 1
+  when: jdk_download.changed
+
+- name: JDK symlink
+  file:
+    src: "{{ java.install_dir }}"
+    dest: "{{ java_symlink_to }}"
+    owner: "{{ java.user }}"
+    group: "{{ java.group }}"
+    state: link
+
+- name: Add environment variable
+  template:
+    src: profile.java8.sh.j2
+    dest: "{{ profile_link }}"
+    owner: root
+    group: root
+    mode: 0744
+

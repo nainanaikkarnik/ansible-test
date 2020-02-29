@@ -1,0 +1,111 @@
+---
+# tasks file for kafka
+
+# Configure environment
+- name: Create Kafka Group
+  group:
+    name: "{{ kafka.group }}"
+    state: present
+
+- name: Create Kafka User
+  user:
+    name: "{{ kafka.user }}"
+    comment: "Kafka User"
+    group: "{{ kafka.group }}"
+
+- include_vars: file={{ playbook_dir }}/conf/kafka_packages.yml
+
+- name: create install directories
+  file:
+    path: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    state: directory
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "kafka"
+
+- name: Extract zookeeper package
+  unarchive:
+    src: "{{ downloads_dir }}/{{ item.name }}-{{ item.version }}.tar.gz"
+    dest: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+    extra_opts: [--strip=1]
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "kafka"
+
+- name: symlink install directory
+  file:
+    src: "{{ package_dir }}/{{ item.name }}-{{ item.version }}"
+    path: "{{ kafka.link_dir }}"
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+    state: link
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "kafka"
+
+- name: create deploy directories
+  file:
+    path: {{ item }}
+    state: directory
+    mode: 0755
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+  with_items:
+   - "{{ kafka.datalog_dir }}"
+  notify:
+    - Restart kafka
+
+- name: Create Kafka Broker Data Directories
+  file:
+    path: "{{kafka.data_dir}}"
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+    state: directory
+    notify:
+      - Restart kafka
+
+- name: create servers logging directory
+  file:
+    name: "{{ kafka.log_dir }}"
+    owner: "{{ kafka.user }}"
+    group: "{{ kafka.group }}"
+    state: directory
+    notify:
+      - Restart kafka
+
+- name: Create Kafka Broker Config
+  template:
+    src: "sever.properties.j2"
+    dest: "{{ kafka.conf_dir }}/sever.properties"
+    owner: "{{kafka.user}}"
+    group: "{{kafka.group}}"
+  notify:
+    - Restart kafka
+
+- name: Copy logging configuration
+  template:
+    src: log4j.properties.j2
+    dest: "{{ kafka.conf_dir }}/log4j.properties"
+    owner: "{{ kafka.user }}"
+    group: "{{ kafka.group }}"
+  notify:
+    - Restart Kafka
+
+- name: Create systemd startup script
+  template:
+    src: kafka.service
+    dest: /etc/systemd/system/kafka.service
+    owner: root
+    group: root
+    mode: 644
+  with_items: "{{ kafka_packages }}"
+  when: item.name == "kafka"
+  notify:
+   - reload systemd
+   - Restart kafka
+
+- name: Ensure Kafka is started
+  service:
+    name: kafka
+    state: started
