@@ -1,0 +1,6 @@
+- name: Restart Kafka
+  service: name=kafka state=restarted
+  with_items: "{{ kafka_servers.hosts }}"
+
+- name: reload systemd
+  command: systemctl daemon-reload

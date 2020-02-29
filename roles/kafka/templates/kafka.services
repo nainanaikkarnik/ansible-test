@@ -1,0 +1,20 @@
+[Unit]
+Description=Apache Kafka
+Documentation=https://kafka.apache.org/
+After=network.target
+Wants=network.target
+
+[Service]
+LimitNOFILE=128000
+Environment="KAFKA_HEAP_OPTS=-Xmx{{ kafka.heap_size }} -Xms{{ kafka.heap_size }}"
+Environment="KAFKA_JVM_PERFORMANCE_OPTS={{ kafka.jvm_perf_options }}"
+Environment="JAVA_HOME={{ java_symlink_to }}"
+Environment="KAFKA_LOG4J_OPTS=-Dlog4j.configuration=file:{{ kafka.conf_dir }}/log4j.properties"
+Environment="LOG_DIR={{ kafka.log_dir }}"
+Type=forking
+User={{ kafka.user }}
+ExecStart={{ package_dir }}/{{ item.name }}-{{ item.version }}/bin/kafka-server-start.sh -daemon {{ kafka.conf_dir }}/server.properties
+ExecStop={{ package_dir }}/{{ item.name }}-{{ item.version }}/bin/kafka-server-stop.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=Apache Zookeeper Server
+Documentation=http://zookeeper.apache.org
+After=network.target
+Wants=network.target
+
+[Service]
+Environment=ZOOCFGDIR={{ zookeeper.conf_dir }}
+Environment=ZOO_LOG_DIR={{ zookeeper.log_dir }}
+Environment=JAVA_HOME={{ java_symlink_to }}
+Type=forking
+User={{ zookeeper.user }}
+ExecStart={{ package_dir }}/{{ item.name }}-{{ item.version }}/bin/zkServer.sh start
+ExecStop={{ package_dir }}/{{ item.name }}-{{ item.version }}/bin/zkServer.sh stop 
+ExecReload={{ package_dir }}/{{ item.name }}-{{ item.version }}/bin/zkServer.sh restart
+
+[Install]
+WantedBy=multi-user.target

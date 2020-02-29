@@ -1,0 +1,43 @@
+---
+# tasks file for java_openjdk
+
+- name: install unzip
+  package:
+    name: unzip
+    state: present
+    update_cache: yes
+
+
+- name: Create download directory
+  file:
+    path: "{{ java_download_dir }}"
+    state: directory
+
+- name: Copy java tar file
+  copy:
+    src: "{{downloads_dir}}/jdk-{{ java_version }}-linux-x64.tar.gz"
+    dest: "{{ java_download_dir }}/jdk-{{ java_version }}-linux-x64.tar.gz"
+
+- name: Create JDK directory
+  file:
+    path: "{{ java.install_dir }}"
+    state: directory
+ 
+- name: Unpack JDK
+  command: tar -xf "{{ java_download_dir }}/jdk-{{ java_version }}-linux-x64.tar.gz" -C "{{ java.install_dir }}" --strip 1
+
+- name: JDK symlink
+  file:
+    src: "{{ java.install_dir }}"
+    dest: "{{ java_symlink_to }}"
+    owner: "{{ java.user }}"
+    group: "{{ java.group }}"
+    state: link
+
+- name: Add environment variable
+  template:
+    src: profile.java8.sh.j2
+    dest: "{{ java.profile_link }}"
+    owner: root
+    group: root
+    mode: 0644

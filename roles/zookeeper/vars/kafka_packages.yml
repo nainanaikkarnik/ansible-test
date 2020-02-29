@@ -1,0 +1,9 @@
+---
+
+kafka_packages:
+  - name: zookeeper
+    version: 3.4.11
+
+  - name: kafka
+    version: 2.12-1.0.0
+

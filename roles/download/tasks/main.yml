@@ -1,0 +1,29 @@
+---
+
+- name: create downloads and resources directories
+  file: path="{{ item }}" state=directory mode=0755 owner={{ ansible_user }} group={{ ansible_user }}
+  with_items:
+  - "{{ downloads_dir }}"
+  - "{{ conf_dir }}"
+  - "{{ package_dir }}"
+
+- name: create kafka_packages.yml
+  template: src=kafka_packages.yml.j2 dest={{ playbook_dir }}/conf/kafka_packages.yml
+
+- include_vars: file={{ playbook_dir }}/conf/kafka_packages.yml
+
+- name: download packages
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ downloads_dir }}/{{ item.name }}-{{ item.version }}.tar.gz"
+    checksum: "{{ item.checksum | default(omit) }}"
+    force: yes
+    validate_certs: no
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  register: get_url_result
+  until: "'OK' in get_url_result.msg or 'file already exists' in get_url_result.msg"
+  retries: 4
+  delay: "{{ retry_stagger | random + 3 }}"
+  with_items: "{{ kafka_packages }}"
+

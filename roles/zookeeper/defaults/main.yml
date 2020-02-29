@@ -1,0 +1,20 @@
+---
+zookeeper:
+  user: zookeeper
+  group: zookeeper
+  
+  link_dir: "{{ package_dir }}/zookeeper"
+  data_dir: "/var/lib/zookeeper/data"
+  datalog_dir: "/var/lib/zookeeper/datalog"
+  log_dir: "/var/log/zookeeper/log"
+  conf_dir: "/etc/zookeeper/conf"
+
+  maxClientCnxns: "60"
+  client_port: 2181
+
+  peer_port: 2888
+  leader_port: 3888
+
+  heap_size: "2G"
+
+

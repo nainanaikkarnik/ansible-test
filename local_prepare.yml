@@ -1,0 +1,9 @@
+---
+
+- name: Initializing deployment environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - download
+

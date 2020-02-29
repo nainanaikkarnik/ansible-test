@@ -1,0 +1,2 @@
+{{ zookeeper_id | default(groups.zookeeper_servers.index(inventory_hostname) + 1)}}
+
